@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1791881882255" clover="3.2.0">
+  <project timestamp="1791881882255" name="All files">
+    <metrics statements="20" coveredstatements="20" conditionals="14" coveredconditionals="13" methods="4" coveredmethods="4" elements="38" coveredelements="37" complexity="0" loc="20" ncloc="20" packages="1" files="1" classes="1"/>
+    <file name="app.js" path="D:\Assignments\Devops Assignment\Session 16\src\app.js">
+      <metrics statements="20" coveredstatements="20" conditionals="14" coveredconditionals="13" methods="4" coveredmethods="4"/>
+      <line num="1" count="1" type="stmt"/>
+      <line num="2" count="1" type="stmt"/>
+      <line num="4" count="1" type="stmt"/>
+      <line num="7" count="1" type="stmt"/>
+      <line num="8" count="1" type="stmt"/>
+      <line num="19" count="1" type="stmt"/>
+      <line num="20" count="1" type="stmt"/>
+      <line num="29" count="1" type="stmt"/>
+      <line num="30" count="4" type="stmt"/>
+      <line num="32" count="4" type="cond" truecount="5" falsecount="0"/>
+      <line num="33" count="1" type="stmt"/>
+      <line num="39" count="3" type="cond" truecount="5" falsecount="0"/>
+      <line num="40" count="1" type="stmt"/>
+      <line num="46" count="2" type="cond" truecount="2" falsecount="0"/>
+      <line num="47" count="1" type="stmt"/>
+      <line num="53" count="1" type="stmt"/>
+      <line num="55" count="1" type="stmt"/>
+      <line num="67" count="1" type="stmt"/>
+      <line num="68" count="1" type="stmt"/>
+      <line num="75" count="1" type="stmt"/>
+    </file>
+  </project>
+</coverage>

@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod-configmap
+  labels:
+    app: demo-app
+spec:
+  containers:
+  - name: web-container
+    image: nginx:alpine
+    ports:
+    - containerPort: 80
+    env:
+    # 1. Inject individual keys as environment variables
+    - name: APP_ENV
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: APP_ENV
+    - name: LOG_LEVEL
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: LOG_LEVEL
+    - name: APP_MESSAGE
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: WELCOME_MESSAGE
+    volumeMounts:
+    # 2. Inject ConfigMap as mounted configuration file
+    - name: config-volume
+      mountPath: /etc/config
+      readOnly: true
+  volumes:
+  - name: config-volume
+    configMap:
+      name: app-config

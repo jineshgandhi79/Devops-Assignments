@@ -1,0 +1,187 @@
+# Kubernetes Troubleshooting Manifests Suite
+# Author: Jinesh Gandhi
+
+---
+# 1. CrashLoopBackOff Scenario
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crashloop-demo
+  labels:
+    app: crashloop-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crashloop-demo
+  template:
+    metadata:
+      labels:
+        app: crashloop-demo
+    spec:
+      containers:
+      - name: failing-app
+        image: busybox:1.36
+        # FAILING: Exits immediately with code 1
+        command: ["sh", "-c", "echo '[FATAL] Missing required DB connection string!'; exit 1"]
+        # FIX:
+        # command: ["sh", "-c", "echo '[INFO] Application started successfully'; while true; do sleep 30; done"]
+
+---
+# 2. ImagePullBackOff / ErrImagePull Scenario
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: invalid-image-demo
+  labels:
+    app: invalid-image-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: invalid-image-demo
+  template:
+    metadata:
+      labels:
+        app: invalid-image-demo
+    spec:
+      containers:
+      - name: web
+        # FAILING: Non-existent image tag
+        image: nginx:non-existent-tag-v999
+        # FIX:
+        # image: nginx:1.25-alpine
+
+---
+# 3. Pending Pod (Insufficient CPU/Memory) Scenario
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pending-resource-demo
+  labels:
+    app: pending-resource-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pending-resource-demo
+  template:
+    metadata:
+      labels:
+        app: pending-resource-demo
+    spec:
+      containers:
+      - name: heavy-app
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: "128" # Impossible for typical node -> stays Pending
+            memory: "512Gi"
+          # FIX:
+          # requests:
+          #   cpu: "100m"
+          #   memory: "128Mi"
+
+---
+# 4. ContainerCreating (Missing ConfigMap volume mount) Scenario
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: container-creating-demo
+  labels:
+    app: container-creating-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: container-creating-demo
+  template:
+    metadata:
+      labels:
+        app: container-creating-demo
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        volumeMounts:
+        - name: app-cfg
+          mountPath: /etc/config
+      volumes:
+      - name: app-cfg
+        configMap:
+          name: non-existent-app-config # Missing configmap causes ContainerCreating hang
+
+---
+# 5. Service Connectivity / Label Mismatch Scenario
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service-app
+  labels:
+    app: payment-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment-api
+  template:
+    metadata:
+      labels:
+        app: payment-api
+    spec:
+      containers:
+      - name: payment
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+spec:
+  selector:
+    app: payment-apii # Typo in label selector! Endpoints will be <none>
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
+---
+# 6. Mini Project: Order Processing Distributed System Scenario
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-api
+  labels:
+    app: order-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-api
+  template:
+    metadata:
+      labels:
+        app: order-api
+    spec:
+      containers:
+      - name: order-service
+        image: nginx:alpine
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          value: "orders-db-service"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-api-service
+spec:
+  type: ClusterIP
+  selector:
+    app: order-api
+  ports:
+  - port: 80
+    targetPort: 8080

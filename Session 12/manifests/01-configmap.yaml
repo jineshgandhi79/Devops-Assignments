@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  labels:
+    app: demo-app
+data:
+  APP_ENV: "production"
+  APP_PORT: "8080"
+  LOG_LEVEL: "info"
+  WELCOME_MESSAGE: "Hello from Kubernetes ConfigMap! Configured for DevOps Session 12."
+  app.properties: |
+    database.host=db.internal.local
+    database.port=5432
+    cache.ttl=3600
+    feature.dark_mode=true

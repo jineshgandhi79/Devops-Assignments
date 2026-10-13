@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-init-container
+  labels:
+    app: lifecycle-init
+spec:
+  initContainers:
+  - name: init-service-wait
+    image: busybox:1.36
+    command: ['sh', '-c', 'echo "[Init] Running database setup check..."; sleep 5; echo "[Init] Pre-requisites ready."']
+  containers:
+  - name: main-app
+    image: nginx:1.24
+    ports:
+    - containerPort: 80

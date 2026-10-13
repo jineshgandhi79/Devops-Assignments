@@ -1,0 +1,44 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+provisioner: k8s.io/minikube-hostpath # or kubernetes.io/aws-ebs, standard CSI
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+parameters:
+  type: gp3
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dynamic-ssd-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dynamic-storage-pod
+spec:
+  containers:
+  - name: db-worker
+    image: busybox:1.36
+    command: ["sh", "-c"]
+    args:
+    - >
+      echo "Dynamic PV provisioned via StorageClass fast-ssd" > /var/lib/data/status.log;
+      df -h /var/lib/data;
+      sleep 3600;
+    volumeMounts:
+    - name: dynamic-vol
+      mountPath: /var/lib/data
+  volumes:
+  - name: dynamic-vol
+    persistentVolumeClaim:
+      claimName: dynamic-ssd-pvc

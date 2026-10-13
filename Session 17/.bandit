@@ -1,0 +1,7 @@
+# Bandit SAST Configuration in YAML format
+exclude_dirs:
+  - "/tests"
+  - "/.venv"
+  - "/venv"
+skips:
+  - "B101"

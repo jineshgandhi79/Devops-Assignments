@@ -1,0 +1,13 @@
+rules:
+  - id: devops-node-insecure-eval
+    patterns:
+      - pattern: eval(...)
+    message: "Avoid using eval() as it opens arbitrary code execution vulnerabilities."
+    severity: ERROR
+    languages: [javascript, typescript]
+  - id: devops-hardcoded-credentials
+    patterns:
+      - pattern-regex: "(?i)(password|secret|token|api_key)\\s*[:=]\\s*['\"][A-Za-z0-9_#$]{8,}['\"]"
+    message: "Detected potential hardcoded secret or token. Use Kubernetes Secrets or KMS."
+    severity: WARNING
+    languages: [javascript, typescript, yaml]

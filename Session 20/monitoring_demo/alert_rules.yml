@@ -1,0 +1,32 @@
+groups:
+  - name: system_and_app_alerts
+    rules:
+      # Alert on High CPU Utilization (> 85%)
+      - alert: HighCpuUtilization
+        expr: system_cpu_utilization_percent > 85
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Host CPU utilization is critically high"
+          description: "CPU utilization has exceeded 85% for more than 1 minute (current value: {{ $value }}%)."
+
+      # Alert on High Memory Utilization (> 80%)
+      - alert: HighMemoryUtilization
+        expr: system_memory_utilization_percent > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host memory utilization is high"
+          description: "Memory utilization has exceeded 80% (current value: {{ $value }}%)."
+
+      # Alert on Application Health Check Failure
+      - alert: ApplicationDegradedOrDown
+        expr: app_health_status == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Order API health status degraded"
+          description: "Application health check failed or entered degraded operational mode."

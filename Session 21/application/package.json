@@ -1,0 +1,16 @@
+{
+  "name": "devops-portal-api",
+  "version": "1.0.0",
+  "description": "Production Cloud-Native Microservice for DevOps & SRE Operations Portal",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "prom-client": "^15.1.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  }
+}

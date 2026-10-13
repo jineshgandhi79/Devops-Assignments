@@ -1,0 +1,9 @@
+apiVersion: v2
+name: guestbook
+description: A Production-Ready Helm chart for Multi-Tier Guestbook Application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Jinesh Gandhi
+    email: jinesh.gandhi@example.com

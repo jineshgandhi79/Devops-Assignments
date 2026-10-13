@@ -1,0 +1,81 @@
+# FIXED MANIFEST - RESOLVED SCENARIO
+# Fixes applied:
+# 1. ConfigMap key aligned to 'DATABASE_URL' matching pod env key reference.
+# 2. Secret 'auth-secret' created and referenced with valid token.
+# 3. Ingress backend service port changed from 8080 to 80 matching service port definition.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: broken-app-config
+data:
+  DATABASE_URL: "postgres://db.prod.internal:5432/main"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: auth-secret
+type: Opaque
+stringData:
+  token: "dHJvdWJsZXNob290aW5nLXRva2VuLTIwMjY="
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: troubleshooting-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: troubleshooting-app
+  template:
+    metadata:
+      labels:
+        app: troubleshooting-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: broken-app-config
+              key: DATABASE_URL
+        - name: SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: auth-secret
+              key: token
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: troubleshooting-service
+spec:
+  selector:
+    app: troubleshooting-app
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: troubleshooting-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: troubleshoot.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: troubleshooting-service
+            port:
+              number: 80

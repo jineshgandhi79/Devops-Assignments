@@ -1,0 +1,12 @@
+# Gitleaks security configuration file
+title = "DevSecOps Gitleaks Custom Rule Profile"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Permitted internal tokens or examples"
+paths = [
+    '''.*\.md''',
+    '''tests/.*'''
+]

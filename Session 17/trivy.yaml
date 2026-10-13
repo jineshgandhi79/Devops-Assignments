@@ -1,0 +1,19 @@
+# Trivy Configuration for Container Vulnerability & Misconfiguration Scans
+scan:
+  scanners:
+    - vuln
+    - misconfig
+    - secret
+  skip-dirs:
+    - tests
+    - .git
+
+severity:
+  - CRITICAL
+  - HIGH
+
+exit-code: 1
+ignore-unfixed: true
+
+format: table
+output: trivy-report.txt

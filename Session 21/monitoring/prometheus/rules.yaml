@@ -1,0 +1,45 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: devops-portal-servicemonitor
+  namespace: monitoring
+  labels:
+    release: prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: devops-portal
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: devops-portal-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus-stack
+spec:
+  groups:
+    - name: DevOpsPortalAlerts
+      rules:
+        - alert: DevOpsPortalHighErrorRate
+          expr: sum(rate(http_requests_total{status_code=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) * 100 > 5
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "DevOps Portal experiencing HTTP 5xx error rate > 5%"
+            description: "High error rate detected on {{ $labels.instance }}."
+
+        - alert: DevOpsPortalPodCrashLooping
+          expr: increase(kube_pod_container_status_restarts_total{container="devops-portal"}[10m]) > 3
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "DevOps Portal Pod is restarting frequently"
+            description: "Pod {{ $labels.pod }} restarted more than 3 times in 10 minutes."

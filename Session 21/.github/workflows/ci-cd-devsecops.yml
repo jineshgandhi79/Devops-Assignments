@@ -1,0 +1,143 @@
+name: End-to-End Enterprise CI/CD & DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # -------------------------------------------------------------
+  # Job 1: Build & Unit Test
+  # -------------------------------------------------------------
+  build-and-test:
+    name: Build & Unit Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Application Dependencies
+        run: |
+          cd application
+          npm install
+
+      - name: Execute Automated Unit Tests
+        run: |
+          cd application
+          npm test
+
+  # -------------------------------------------------------------
+  # Job 2: DevSecOps (SAST, SCA, Secret Scanning)
+  # -------------------------------------------------------------
+  security-scan:
+    name: DevSecOps Security Gate
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Secret Scanning (TruffleHog / Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run SAST Analysis (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/owasp-top-ten
+
+      - name: Run SCA Dependency Audit (npm audit)
+        run: |
+          cd application
+          npm audit --audit-level=high
+
+  # -------------------------------------------------------------
+  # Job 3: Docker Container Build & Trivy Image Vulnerability Scan
+  # -------------------------------------------------------------
+  docker-build-and-scan:
+    name: Docker Build & Vulnerability Scan
+    needs: security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Local Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          tags: devops-portal:${{ github.sha }}
+
+      - name: Run Trivy Container Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: devops-portal:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Log in to Docker Registry
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Image to Registry
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/devops-portal:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/devops-portal:latest
+
+  # -------------------------------------------------------------
+  # Job 4: GitOps Synchronization / Manifest Update
+  # -------------------------------------------------------------
+  gitops-deploy:
+    name: GitOps Deployment Sync
+    needs: docker-build-and-scan
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitOps Repository
+        uses: actions/checkout@v4
+
+      - name: Update Kubernetes Manifests Tag
+        run: |
+          sed -i "s|image: jinesh/devops-portal:.*|image: jinesh/devops-portal:${{ github.sha }}|g" kubernetes/complete-deployment.yaml
+          sed -i "s|tag: .*|tag: \"${{ github.sha }}\"|g" helm/devops-portal/values.yaml
+
+      - name: Commit and Push Image Tag Update
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add kubernetes/complete-deployment.yaml helm/devops-portal/values.yaml
+          git commit -m "chore(gitops): update image tag to ${GITHUB_SHA} [skip ci]" || echo "No changes"
+          git push origin main

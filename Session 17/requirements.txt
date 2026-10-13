@@ -1,0 +1,4 @@
+# Secure, pinned requirements for DevSecOps Demo
+flask==3.1.3
+werkzeug==3.1.9
+gunicorn==23.0.0

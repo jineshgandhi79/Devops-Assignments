@@ -1,0 +1,26 @@
+services:
+  devops-portal:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: jinesh/devops-portal:v1.0.0
+    container_name: devops-portal-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - APP_ENV=production
+      - DATA_STORAGE_PATH=/data/portal-data.log
+    volumes:
+      - app-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  app-data:
+    driver: local

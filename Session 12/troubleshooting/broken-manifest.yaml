@@ -1,0 +1,73 @@
+# BROKEN MANIFEST - TROUBLESHOOTING SCENARIO
+# Issues present:
+# 1. ConfigMap key name mismatch: Pod looks for 'DATABASE_URL' but ConfigMap defines 'DB_URL'
+# 2. Secret reference error: Pod references non-existent secret 'auth-secret' instead of 'app-secret'
+# 3. Ingress backend service port mismatch: Ingress points to port 8080, but service exposes port 80
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: broken-app-config
+data:
+  DB_URL: "postgres://db.prod.internal:5432/main"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: troubleshooting-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: troubleshooting-app
+  template:
+    metadata:
+      labels:
+        app: troubleshooting-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        env:
+        # BUG: KeyError - ConfigMap 'broken-app-config' does not have key 'DATABASE_URL'
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: broken-app-config
+              key: DATABASE_URL
+        # BUG: SecretNotFound - Secret 'auth-secret' does not exist
+        - name: SECRET_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: auth-secret
+              key: token
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: troubleshooting-service
+spec:
+  selector:
+    app: troubleshooting-app
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: troubleshooting-ingress
+spec:
+  rules:
+  - host: troubleshoot.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: troubleshooting-service
+            # BUG: Service port 8080 does not exist on troubleshooting-service (which is on port 80)
+            port:
+              number: 8080
